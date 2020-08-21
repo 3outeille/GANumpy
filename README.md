@@ -1,1 +1,1 @@
-# GANumpy
+# DCGANumpy
