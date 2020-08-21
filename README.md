@@ -18,3 +18,8 @@ pip install -r requirements.txt
 # Tidy up the root folder.
 python3 setup.py clean
 ```
+
+<!---
+Variables with links.
+-->
+[virtualenv]: https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
