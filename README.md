@@ -1,4 +1,4 @@
-# DCGANumpy
+# GANumpy 
 
 ## Installation
 

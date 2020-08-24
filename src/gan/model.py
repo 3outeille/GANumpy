@@ -2,24 +2,79 @@ from src.dcgan.layers import *
 from src.dcgan.utils import *
 import numpy as np
 
-class DCGAN():
+class Generator():
 
     def __init__(self):
-        self.conv1 = Conv(nb_filters = 6, filter_size = 5, nb_channels = 1)
-        self.tanh1 = TanH()
-        self.pool1 = AvgPool(filter_size = 2, stride = 2)
-        self.conv2 = Conv(nb_filters = 16, filter_size = 5, nb_channels = 6)
-        self.tanh2 = TanH()
-        self.pool2 = AvgPool(filter_size = 2, stride = 2)
-        self.pool2_shape = None
-        self.fc1 = Fc(row = 120, column = 5*5*16)
-        self.tanh3 = TanH()
-        self.fc2 = Fc(row = 84, column = 120)
-        self.tanh4 = TanH()
-        self.fc3 = Fc(row = 10 , column = 84)
-        self.softmax = Softmax()
+        self.fc1 = Fc(row=256, column=100)
+        self.act1 = LeakyReLU(0.2)
+        self.fc2 = Fc(row=512, column=256)
+        self.act2 = LeakyReLU(0.2)
+        self.fc3 = Fc(row=1024, column=512)
+        self.act3 = LeakyReLU(0.2)
+        self.fc4 = Fc(row=28*28, column=1024) # 28*28=784=size of MNIST image.
+        self.act4 = TanH()
 
-        self.layers = [self.conv1, self.conv2, self.fc1, self.fc2, self.fc3]
+        self.layers = [self.fc1, self.fc2, self.fc3, self.fc4]
+    
+    def forward(self, X):
+        
+        out = self.fc1.forward(X)
+        out = self.act1.forward(out)
+        out = self.fc2.forward(X)
+        out = self.act2.forward(out)
+        out = self.fc3.forward(X)
+        out = self.act3.forward(out)
+        out = self.fc4.forward(X)
+        out = self.act4.forward(out)
+        
+        return out
+
+    def backward(self):
+        pass
+    
+    def get_params(self):
+        pass
+
+    def set_params(self):
+        pass
+
+class Discriminator():
+
+    def __init__(self):
+        self.fc1 = Fc(row=1024, column=28*28)
+        self.act1 = LeakyReLU(0.2)
+        self.fc2 = Fc(row=512, column=1024)
+        self.act2 = LeakyReLU(0.2)
+        self.fc3 = Fc(row=256, column=512)
+        self.act3 = LeakyReLU(0.2)
+        self.fc4 = Fc(row=1, column=256)
+        self.act4 = Sigmoid()
+
+        self.layers = [self.fc1, self.fc2, self.fc3, self.fc4]
+    
+    def forward(self, X):
+        
+        out = self.fc1.forward(X)
+        out = self.act1.forward(out)
+        out = self.fc2.forward(X)
+        out = self.act2.forward(out)
+        out = self.fc3.forward(X)
+        out = self.act3.forward(out)
+        out = self.fc4.forward(X)
+        out = self.act4.forward(out)
+        
+        return out
+
+    def backward(self):
+        pass
+    
+    def get_params(self):
+        pass
+
+    def set_params(self):
+        pass
+
+class DCGAN():
 
 
     def forward(self, X):
