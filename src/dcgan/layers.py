@@ -251,6 +251,22 @@ class TanH():
         X = self.cache
         return new_deltaL * (1 - np.tanh(X)**2)
 
+class LeakyReLU():
+
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.cache = None
+
+    def forward(self, X):
+        self.cache = X
+        return np.where(X > 0, X, X * self.alpha)  
+
+    def backward(self, new_deltaL):
+        X = self.cache
+        dX = np.ones_like(X)
+        dX[X < 0] = self.alpha
+        return dX * new_deltaL
+
 class Softmax():
     
     def __init__(self):
