@@ -33,7 +33,7 @@ class CleanCommand(Command):
 
 setup(  
         cmdclass={'clean': CleanCommand},
-        name='DCGANumpy',
+        name='GANumpy',
         version='1.0',
         packages=find_packages()
     )

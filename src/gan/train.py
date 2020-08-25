@@ -1,6 +1,6 @@
-from src.dcgan.utils import *
-from src.dcgan.layers import *
-from src.dcgan.model import Generator, Discriminator
+from src.gan.utils import *
+from src.gan.layers import *
+from src.gan.model import Generator, Discriminator
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
@@ -14,11 +14,22 @@ filename = [
         ["test_labels","t10k-labels-idx1-ubyte.gz"]
 ]
 
-def real_loss():
-    pass
+def real_loss(D_out, smooth=False):
+    batch_size = D_out.shape[0]
+    if smooth:
+        labels = np.ones(batch_size) * 0.9
+    else:
+        labels = np.ones(batch_size) # real labels = 1.
+    criterion = BinaryCrossEntropyLoss()
+    loss = criterion.get(D_out, labels) # D_out.squeeze() ?
+    return loss
 
-def fake_loss():
-    pass
+def fake_loss(D_out):
+    batch_size = D_out.shape[0]
+    labels = np.zeros(batch_size) # fake labels = 0.    
+    criterion = BinaryCrossEntropyLoss()
+    loss = criterion.get(D_out, labels) # D_out.squeeze() ?
+    return loss
 
 def train():
     NB_EPOCH = 1
@@ -45,13 +56,13 @@ def train():
     print("LR: {}".format(lr))
     print()
 
-    nb_train_examples = len(X_train)
+    nb_examples = len(X)
     losses = []
 
     for epoch in range(NB_EPOCH):
         
-        pbar = trange(nb_train_examples // BATCH_SIZE)
-        train_loader = dataloader(X_train, y_train, BATCH_SIZE)
+        pbar = trange(nb_examples // BATCH_SIZE)
+        train_loader = dataloader(X, y, BATCH_SIZE)
 
         start = timer()
 
@@ -59,29 +70,29 @@ def train():
             
             # ---------TRAIN THE DISCRIMINATOR ----------------
                         
-            # 1. Train with real images.
+            # # 1. Train with real images.
 
-            # Compute the discriminator losses on real images
-            # smooth the real labels.
-            D_real = D.forward(real_images)
-            D_real_loss = real_loss(D_real, smooth=True)
+            # # Compute the discriminator losses on real images
+            # # smooth the real labels.
+            # D_real = D.forward(real_images)
+            # D_real_loss = real_loss(D_real, smooth=True)
 
-            # 2. Train with fake images.
-            # Generate fake images.
-            z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100, 1, 1))
-            fake_images = G.forward(z)
+            # # 2. Train with fake images.
+            # # Generate fake images.
+            # z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100, 1, 1))
+            # fake_images = G.forward(z)
 
-            # 3. Compute the discriminator losses on fake images.
-            D_fake = D.forward(fake_images)
-            D_fake_loss = fake_loss(D_fake)
+            # # 3. Compute the discriminator losses on fake images.
+            # D_fake = D.forward(fake_images)
+            # D_fake_loss = fake_loss(D_fake)
 
-            # 4. Add up real and fake loss.
-            D_loss = D_real_loss + D_fake_loss
+            # # 4. Add up real and fake loss.
+            # D_loss = D_real_loss + D_fake_loss
 
-            # 5. Perform backprop and optimization step.
-            grads = D.backward()
-            params = D_optimizer.update_params(grads)
-            D.set_params(params)
+            # # 5. Perform backprop and optimization step.
+            # grads = D.backward()
+            # params = D_optimizer.update_params(grads)
+            # D.set_params(params)
 
             # ---------TRAIN THE GENERATOR ----------------
 
@@ -97,14 +108,15 @@ def train():
             # 3. Perform backprop and optimization step.        
             grads = G.backward()
             params = G_optimizer.update_params(grads)
-            G.set_params(params)G_optimizer.step()
+            G.set_params(params)
+
+            # Append discriminator loss and generator loss.
+            losses.append((D_loss, G_loss))
 
             #pbar.set_description("[Train] Epoch {}".format(epoch+1))
         
         end = timer()
 
-        # Append discriminator loss and generator loss.
-        losses.append(D_loss, G_loss)
         # Print discriminator and generator loss.
         info = "[Epoch {}/{}] ({:0.3f}s}): D_loss = {:0.6f} | G_loss = {:0.6f}"
         print(info.format(epoch+1, EPOCHS, end-start, D_loss, G_loss))

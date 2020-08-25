@@ -1,4 +1,4 @@
-from src.dcgan.utils import get_indices, im2col, col2im
+from src.gan.utils import get_indices, im2col, col2im
 import numpy as np
 
 class Conv():
@@ -285,6 +285,22 @@ class Softmax():
     def backward(self, y_pred, y):
         return y_pred - y
 
+
+class BinaryCrossEntropyLoss():
+
+    def __init__(self):
+        pass
+    
+    def get(self, y_pred, y):
+        """
+            Return the negative log likelihood and the error at the last layer.
+            
+            Parameters:
+            - y_pred: model predictions.
+            - y: ground truth labels.
+        """
+        loss = -(y * np.log(y_pred) + (1-y) * np.log(1-y_pred))
+        return loss
 
 class CrossEntropyLoss():
 

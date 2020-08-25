@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 import urllib.request
 from PIL import Image
-from src.dcgan.data import *
+from src.gan.data import *
 from skimage import transform
 import matplotlib.pyplot as plt
 import concurrent.futures as cf
