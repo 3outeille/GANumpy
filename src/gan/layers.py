@@ -1,138 +1,4 @@
-from src.gan.utils import get_indices, im2col, col2im
 import numpy as np
-
-class Conv():
-    
-    def __init__(self, nb_filters, filter_size, nb_channels, stride=1, padding=0):
-        self.n_F = nb_filters
-        self.f = filter_size
-        self.n_C = nb_channels
-        self.s = stride
-        self.p = padding
-
-        # Xavier-Glorot initialization - used for sigmoid, tanh.
-        self.W = {'val': np.random.randn(self.n_F, self.n_C, self.f, self.f) * np.sqrt(1. / (self.f)),
-                  'grad': np.zeros((self.n_F, self.n_C, self.f, self.f))}  
-        self.b = {'val': np.random.randn(self.n_F) * np.sqrt(1. / self.n_F), 'grad': np.zeros((self.n_F))}
-
-        self.cache = None
-
-    def forward(self, X):
-        """
-            Performs a forward convolution.
-           
-            Parameters:
-            - X : Last conv layer of shape (m, n_C_prev, n_H_prev, n_W_prev).
-            Returns:
-            - out: previous layer convolved.
-        """
-        m, n_C_prev, n_H_prev, n_W_prev = X.shape
-
-        n_C = self.n_F
-        n_H = int((n_H_prev + 2 * self.p - self.f)/ self.s) + 1
-        n_W = int((n_W_prev + 2 * self.p - self.f)/ self.s) + 1
-        
-        X_col = im2col(X, self.f, self.f, self.s, self.p)
-        w_col = self.W['val'].reshape((self.n_F, -1))
-        b_col = self.b['val'].reshape(-1, 1)
-        # Perform matrix multiplication.
-        out = w_col @ X_col + b_col
-        # Reshape back matrix to image.
-        out = np.array(np.hsplit(out, m)).reshape((m, n_C, n_H, n_W))
-        self.cache = X, X_col, w_col
-        return out
-
-    def backward(self, dout):
-        """
-            Distributes error from previous layer to convolutional layer and
-            compute error for the current convolutional layer.
-
-            Parameters:
-            - dout: error from previous layer.
-            
-            Returns:
-            - dX: error of the current convolutional layer.
-            - self.W['grad']: weights gradient.
-            - self.b['grad']: bias gradient.
-        """
-        X, X_col, w_col = self.cache
-        m, _, _, _ = X.shape
-        # Compute bias gradient.
-        self.b['grad'] = np.sum(dout, axis=(0,2,3))
-        # Reshape dout properly.
-        dout = dout.reshape(dout.shape[0] * dout.shape[1], dout.shape[2] * dout.shape[3])
-        dout = np.array(np.vsplit(dout, m))
-        dout = np.concatenate(dout, axis=-1)
-        # Perform matrix multiplication between reshaped dout and w_col to get dX_col.
-        dX_col = w_col.T @ dout
-        # Perform matrix multiplication between reshaped dout and X_col to get dW_col.
-        dw_col = dout @ X_col.T
-        # Reshape back to image (col2im).
-        dX = col2im(dX_col, X.shape, self.f, self.f, self.s, self.p)
-        # Reshape dw_col into dw.
-        self.W['grad'] = dw_col.reshape((dw_col.shape[0], self.n_C, self.f, self.f))
-                
-        return dX, self.W['grad'], self.b['grad']
-
-class AvgPool():
-    
-    def __init__(self, filter_size, stride=1, padding=0):
-        self.f = filter_size
-        self.s = stride
-        self.p = padding
-        self.cache = None
-
-    def forward(self, X):
-        """
-            Apply average pooling.
-
-            Parameters:
-            - X: Output of activation function.
-            
-            Returns:
-            - A_pool: X after average pooling layer. 
-        """
-        self.cache = X
-
-        m, n_C_prev, n_H_prev, n_W_prev = X.shape
-        n_C = n_C_prev
-        n_H = int((n_H_prev + 2 * self.p - self.f)/ self.s) + 1
-        n_W = int((n_W_prev + 2 * self.p - self.f)/ self.s) + 1
-        
-        X_col = im2col(X, self.f, self.f, self.s, self.p)
-        X_col = X_col.reshape(n_C, X_col.shape[0]//n_C, -1)
-        A_pool = np.mean(X_col, axis=1)
-        # Reshape A_pool properly.
-        A_pool = np.array(np.hsplit(A_pool, m))
-        A_pool = A_pool.reshape(m, n_C, n_H, n_W)
-
-        return A_pool
-
-    def backward(self, dout):
-        """
-            Distributes error through pooling layer.
-
-            Parameters:
-            - dout: Previous layer with the error.
-            
-            Returns:
-            - dX: Conv layer updated with error.
-        """
-        X = self.cache
-        m, n_C_prev, n_H_prev, n_W_prev = X.shape
-
-        n_C = n_C_prev
-        n_H = int((n_H_prev + 2 * self.p - self.f)/ self.s) + 1
-        n_W = int((n_W_prev + 2 * self.p - self.f)/ self.s) + 1
-
-        dout_flatten = dout.reshape(n_C, -1) / (self.f * self.f)
-        dX_col = np.repeat(dout_flatten, self.f*self.f, axis=0)
-        dX = col2im(dX_col, X.shape, self.f, self.f, self.s, self.p)
-        # Reshape dX properly.
-        dX = dX.reshape(m, -1)
-        dX = np.array(np.hsplit(dX, n_C_prev))
-        dX = dX.reshape(m, n_C_prev, n_H_prev, n_W_prev)
-        return dX
 
 class Fc():
 
@@ -267,24 +133,19 @@ class LeakyReLU():
         dX[X < 0] = self.alpha
         return dX * new_deltaL
 
-class Softmax():
+class Sigmoid():
     
     def __init__(self):
-        pass
+        self.cache = None
 
     def forward(self, X):
-        """
-            Compute softmax values for each sets of scores in X.
+        self.cache = X
+        return 1 / (1 + np.exp(-X))
 
-            Parameters:
-            - X: input vector.
-        """
-        e_x = np.exp(X - np.max(X))
-        return  e_x / np.sum(e_x, axis=1)[:, np.newaxis]
-
-    def backward(self, y_pred, y):
-        return y_pred - y
-
+    def backward(self, new_deltaL):
+        X = self.cache
+        sigmoid = 1 / (1 + np.exp(-X))
+        return new_deltaL * (sigmoid * (1 - sigmoid))
 
 class BinaryCrossEntropyLoss():
 
@@ -300,20 +161,4 @@ class BinaryCrossEntropyLoss():
             - y: ground truth labels.
         """
         loss = -(y * np.log(y_pred) + (1-y) * np.log(1-y_pred))
-        return loss
-
-class CrossEntropyLoss():
-
-    def __init__(self):
-        pass
-    
-    def get(self, y_pred, y):
-        """
-            Return the negative log likelihood and the error at the last layer.
-            
-            Parameters:
-            - y_pred: model predictions.
-            - y: ground truth labels.
-        """
-        loss = -np.sum(y * np.log(y_pred))
         return loss
