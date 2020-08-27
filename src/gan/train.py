@@ -20,16 +20,19 @@ def real_loss(D_out, smooth=False):
         labels = np.ones(batch_size) * 0.9
     else:
         labels = np.ones(batch_size) # real labels = 1.
+
     criterion = BinaryCrossEntropyLoss()
-    loss = criterion.get(D_out, labels) # D_out.squeeze() ?
-    return loss
+    loss = criterion.get(D_out.squeeze(), labels)
+    deltaL = -1./D_out.squeeze()
+    return loss, deltaL
 
 def fake_loss(D_out):
     batch_size = D_out.shape[0]
     labels = np.zeros(batch_size) # fake labels = 0.    
     criterion = BinaryCrossEntropyLoss()
-    loss = criterion.get(D_out, labels) # D_out.squeeze() ?
-    return loss
+    loss = criterion.get(D_out.squeeze(), labels)
+    deltaL = -1./D_out.squeeze()
+    return loss, deltaL
 
 def train():
     NB_EPOCH = 1
@@ -46,14 +49,14 @@ def train():
     G = Generator()
     D = Discriminator()
 
-    D_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = D.get_params())
     G_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = G.get_params())
+    D_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = D.get_params())
     
     print("----------------TRAINING-----------------\n")
 
     print("EPOCHS: {}".format(NB_EPOCH))
     print("BATCH_SIZE: {}".format(BATCH_SIZE))
-    print("LR: {}".format(lr))
+    print("LR: {}".format(LR))
     print()
 
     nb_examples = len(X)
@@ -71,42 +74,42 @@ def train():
             # ---------TRAIN THE DISCRIMINATOR ----------------
                         
             # # 1. Train with real images.
+            real_images = real_images.reshape((BATCH_SIZE, -1))
+            # Compute the discriminator losses on real images
+            # smooth the real labels.
+            D_real = D.forward(real_images)
+            D_real_loss, real_deltaL = real_loss(D_real, smooth=True)
 
-            # # Compute the discriminator losses on real images
-            # # smooth the real labels.
-            # D_real = D.forward(real_images)
-            # D_real_loss = real_loss(D_real, smooth=True)
+            # 2. Train with fake images.
+            # Generate fake images.
+            z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100))
+            fake_images = G.forward(z)
 
-            # # 2. Train with fake images.
-            # # Generate fake images.
-            # z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100, 1, 1))
-            # fake_images = G.forward(z)
+            # 3. Compute the discriminator losses on fake images.
+            D_fake = D.forward(fake_images)
+            D_fake_loss, fake_deltaL = fake_loss(D_fake)
 
-            # # 3. Compute the discriminator losses on fake images.
-            # D_fake = D.forward(fake_images)
-            # D_fake_loss = fake_loss(D_fake)
+            # 4. Add up real and fake loss.
+            D_loss = D_real_loss + D_fake_loss
 
-            # # 4. Add up real and fake loss.
-            # D_loss = D_real_loss + D_fake_loss
-
-            # # 5. Perform backprop and optimization step.
-            # grads = D.backward()
-            # params = D_optimizer.update_params(grads)
-            # D.set_params(params)
+            # 5. Perform backprop and optimization step.
+            grads = D.backward(real_deltaL, fake_deltaL)
+            params = D_optimizer.update_params(grads)
+            D.set_params(params)
 
             # ---------TRAIN THE GENERATOR ----------------
 
             # 1. Generate fake images.
-            z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100, 1, 1))
+            z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100))
             fake_images = G.forward(z)
-
+    
             # 2. Compute the discriminator loss on fake images
             # using flipped labels.
             D_fake = D.forward(fake_images)
-            G_loss = real_loss(D_fake) # use real loss to flip labels.
-
+            G_loss, deltaL = real_loss(D_fake) # use real loss to flip labels.
+          
             # 3. Perform backprop and optimization step.        
-            grads = G.backward()
+            grads = G.backward(deltaL)
             params = G_optimizer.update_params(grads)
             G.set_params(params)
 
@@ -140,4 +143,4 @@ def train():
     # plt.show()
 
 # Uncomment to launch training.
-# train()
+train()
