@@ -6,7 +6,7 @@
 
 ```bash
 # On Linux terminal, using virtualenv.
-virtualenv myenv
+virtualenv my_ganumpy_env
 # Activate it.
 source myenv/bin/activate
 ```

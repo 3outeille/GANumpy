@@ -1,5 +1,5 @@
 DCGANumpy.egg-info
-myenv/
+my_gan_env/
 __pycache__/
 .ipynb_checkpoints/
 .vscode/
