@@ -273,9 +273,9 @@ def plot_example_errors(X, y, y_pred):
     # Plot the first 9 images.
     plot_example(X, y, y_pred)
 
-def show_result(G, EPOCHS, path, show=False, save=False):
+def show_result(G, epoch, path, show=False, save=False):
     fixed_noise = np.random.randn(5*5, 100)
-    test_images = G(fixed_noise)
+    test_images = G.forward(fixed_noise)
     
     size_figure_grid = 5
 
@@ -288,9 +288,9 @@ def show_result(G, EPOCHS, path, show=False, save=False):
         i = k // 5
         j = k % 5
         ax[i, j].cla()
-        ax[i, j].imshow(test_images[k, :].cpu().data.view(28, 28).numpy(), cmap='gray')
+        ax[i, j].imshow(test_images[k, :].reshape((28, 28)), cmap='gray')
 
-    label = 'Epoch {0}'.format(num_epoch)
+    label = 'Epoch {0}'.format(epoch)
     fig.text(0.5, 0.04, label, ha='center')
     plt.savefig(path)
 
