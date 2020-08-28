@@ -161,5 +161,5 @@ class BinaryCrossEntropyLoss():
             - y: ground truth labels.
         """
         samples = len(y_pred)
-        loss = np.sum(-(y * np.log(y_pred+self.epsilon) + (1-y) * np.log(1-y_pred+self.epsilon))) / -samples
+        loss = np.sum((y * np.log(y_pred + self.epsilon) + (1. - y) * np.log(1. - y_pred + self.epsilon))) / -samples
         return loss
