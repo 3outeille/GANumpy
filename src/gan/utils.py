@@ -274,7 +274,7 @@ def plot_example_errors(X, y, y_pred):
     plot_example(X, y, y_pred)
 
 def show_result(EPOCHS, path, show=False, save=False):
-    fixed_noise = np.random.randn((5*5, 100))
+    fixed_noise = np.random.randn(5*5, 100)
     test_images = G(fixed_noise)
     
     size_figure_grid = 5
