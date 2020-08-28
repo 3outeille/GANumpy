@@ -1,8 +1,9 @@
 from src.gan.utils import *
 from src.gan.layers import *
 from src.gan.model import Generator, Discriminator
-import numpy as np
+import os
 import pickle
+import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
 from timeit import default_timer as timer
@@ -14,34 +15,44 @@ filename = [
         ["test_labels","t10k-labels-idx1-ubyte.gz"]
 ]
 
-def real_loss(D_out, smooth=False):
-    batch_size = D_out.shape[0]
-    if smooth:
-        labels = np.ones(batch_size) * 0.9
-    else:
-        labels = np.ones(batch_size) # real labels = 1.
-
-    criterion = BinaryCrossEntropyLoss()
-    loss = criterion.get(D_out.squeeze(), labels)
-    deltaL = -1./D_out.squeeze()
-    return loss, deltaL
-
-def fake_loss(D_out):
-    batch_size = D_out.shape[0]
-    labels = np.zeros(batch_size) # fake labels = 0.    
-    criterion = BinaryCrossEntropyLoss()
-    loss = criterion.get(D_out.squeeze(), labels)
-    deltaL = -1./D_out.squeeze()
-    return loss, deltaL
-
 def train():
-    NB_EPOCH = 1
+    NB_EPOCH = 10
     BATCH_SIZE = 100
     LR = 0.0002
+    epsilon = 10e-8
+
+    # results save folder
+    if not os.path.isdir('MNIST_GAN_results'):
+        os.mkdir('MNIST_GAN_results')
+    if not os.path.isdir('MNIST_GAN_results/training_results'):
+        os.mkdir('MNIST_GAN_results/training_results')
+    if not os.path.isdir('MNIST_GAN_results/save_weights'):
+        os.mkdir('MNIST_GAN_results/save_weights')
+
+    criterion = BinaryCrossEntropyLoss()
+
+    def real_loss(D_out, smooth=False):
+        batch_size = D_out.shape[0]
+        if smooth:
+            labels = np.ones(batch_size) * 0.9
+        else:
+            labels = np.ones(batch_size) # real labels = 1.
+
+        loss = criterion.get(D_out.squeeze(), labels)
+        deltaL = -1./(D_out + epsilon)
+        return loss, deltaL
+
+    def fake_loss(D_out):
+        batch_size = D_out.shape[0]
+        labels = np.zeros(batch_size) # fake labels = 0.    
+        loss = criterion.get(D_out.squeeze(), labels)
+        deltaL = -1./(D_out + epsilon)
+        return loss, deltaL
 
     print("\n----------------EXTRACTION---------------\n")
     X, y, X_test, y_test = load(filename)
-    
+    X = X[:100, ...]
+
     print("\n--------------PREPROCESSING--------------\n")
     X = (X - 0.5) / 0.5
     print("Normalize dataset: OK")
@@ -49,8 +60,8 @@ def train():
     G = Generator()
     D = Discriminator()
 
-    G_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = G.get_params())
-    D_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = D.get_params())
+    G_optimizer = AdamGD(lr = LR, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, params = G.get_params())
+    D_optimizer = AdamGD(lr = LR, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, params = D.get_params())
     
     print("----------------TRAINING-----------------\n")
 
@@ -60,13 +71,17 @@ def train():
     print()
 
     nb_examples = len(X)
-    losses = []
+    
+    train_hist = {}
+    train_hist['D_losses'] = []
+    train_hist['G_losses'] = []
 
     for epoch in range(NB_EPOCH):
         
         pbar = trange(nb_examples // BATCH_SIZE)
         train_loader = dataloader(X, y, BATCH_SIZE)
-
+        
+        D_losses, G_losses = [], []
         start = timer()
 
         for i, (real_images, _) in zip(pbar, train_loader):
@@ -82,7 +97,7 @@ def train():
 
             # 2. Train with fake images.
             # Generate fake images.
-            z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100))
+            z = np.random.randn(BATCH_SIZE, 100)
             fake_images = G.forward(z)
 
             # 3. Compute the discriminator losses on fake images.
@@ -97,10 +112,12 @@ def train():
             params = D_optimizer.update_params(grads)
             D.set_params(params)
 
+            D_losses.append(D_loss.item())
+
             # ---------TRAIN THE GENERATOR ----------------
 
             # 1. Generate fake images.
-            z = np.random.uniform(-1, 1, size=(BATCH_SIZE, 100))
+            z = np.random.randn(BATCH_SIZE, 100)
             fake_images = G.forward(z)
     
             # 2. Compute the discriminator loss on fake images
@@ -113,34 +130,38 @@ def train():
             params = G_optimizer.update_params(grads)
             G.set_params(params)
 
-            # Append discriminator loss and generator loss.
-            losses.append((D_loss, G_loss))
+            G_losses.append(G_loss.item())
 
-            #pbar.set_description("[Train] Epoch {}".format(epoch+1))
-        
         end = timer()
 
         # Print discriminator and generator loss.
-        info = "[Epoch {}/{}] ({:0.3f}s}): D_loss = {:0.6f} | G_loss = {:0.6f}"
-        print(info.format(epoch+1, EPOCHS, end-start, D_loss, G_loss))
+        info = "[Epoch {}/{}] ({:0.3f}s): D_loss = {:0.6f} | G_loss = {:0.6f}"
+        print(info.format(epoch+1, NB_EPOCH, end-start, np.mean(D_losses), np.mean(G_losses)))
+
+        # Visualize generator learning.
+        path = 'MNIST_GAN_results/training_results/MNIST_GAN_' + str(epoch + 1) + '.png'
+        show_result(G, epoch+1, save=True, path=path)
+
+        train_hist['D_losses'].append(np.mean(D_losses))
+        train_hist['G_losses'].append(np.mean(G_losses))
+
 
     pbar.close()
+    print("Training finish!... save training results")
+    save_params_to_file(G, "generator_param.pkl")
+    save_params_to_file(D, "discriminator_param.pkl")
 
-    # fig = plt.figure(figsize=(10,10))
-    # fig.add_subplot(2, 1, 1)
+    with open('MNIST_GAN_results/train_hist.pkl', 'wb') as f:
+        pickle.dump(train_hist, f)
 
-    # plt.plot(train_costs)
-    # plt.title("Training loss")
-    # plt.xlabel('Epochs')
-    # plt.ylabel('Loss')
+    show_train_hist(train_hist, save=True, path='MNIST_GAN_results/MNIST_GAN_train_hist.png')
 
-    # fig.add_subplot(2, 1, 2)
-    # plt.plot(val_costs)
-    # plt.title("Validation loss")
-    # plt.xlabel('Epochs')
-    # plt.ylabel('Loss')
-
-    # plt.show()
+    # Create Gif
+    images = []
+    for e in range(NB_EPOCH):
+        img_name = 'MNIST_GAN_results/training_results/MNIST_GAN_' + str(e + 1) + '.png'
+        images.append(imageio.imread(img_name))
+    imageio.mimsave('MNIST_GAN_results/generation_animation.gif', images, fps=5)
 
 # Uncomment to launch training.
 train()

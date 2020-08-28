@@ -28,12 +28,11 @@ class Generator():
         
         return out
 
-    def backward(self, deltaL):
-        
+    def backward(self, deltaL):        
         #######################################
-		#		Fake images gradients.
-		#		-log(D(G(z)))
-		#######################################
+        #		Fake images gradients.
+        #		-log(D(G(z)))
+        #######################################
 
         deltaL = self.act4.backward(deltaL)
         deltaL, dW4, db4 = self.fc4.backward(deltaL)
@@ -97,9 +96,9 @@ class Discriminator():
 
     def backward(self, real_deltaL, fake_deltaL):
         #######################################
-		#		Real images gradients.
-		#		-log(D(x))
-		#######################################
+        #		Real images gradients.
+        #		-log(D(x))
+        #######################################
 
         real_deltaL = self.act4.backward(real_deltaL)
         real_deltaL, real_dW4, real_db4 = self.fc4.backward(real_deltaL)
@@ -114,9 +113,9 @@ class Discriminator():
         real_deltaL, real_dW1, real_db1 = self.fc1.backward(real_deltaL)
 
         #######################################
-		#		Fake images gradients.
-		#		-log(1 - D(G(z)))
-		#######################################
+        #		Fake images gradients.
+        #		-log(1 - D(G(z)))
+        #######################################
 
         fake_deltaL = self.act4.backward(fake_deltaL)
         fake_deltaL, fake_dW4, fake_db4 = self.fc4.backward(fake_deltaL)
