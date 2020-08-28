@@ -156,7 +156,8 @@ def save_params_to_file(model, filename):
     """
     # Make save_weights/ accessible from every folders.
     terminal_path = ["src/gan/MNIST_GAN_results/save_weights/", "gan/MNIST_GAN_results/save_weights/",
-                     "MNIST_GAN_results/save_weights/", "save_weights/"] 
+                     "MNIST_GAN_results/save_weights/", "save_weights/", "src/gan/demo_notebooks/MNIST_GAN_results/save_weights/",
+                     "gan/demo_notebooks/MNIST_GAN_results/save_weights/", "demo_notebooks/MNIST_GAN_results/save_weights/"] 
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -176,8 +177,10 @@ def load_params_from_file(mode, filename):
         Parameters:
         -model: a CNN architecture.
     """
+    #Make save_weights/ accessible from every folders.
     terminal_path = ["src/gan/MNIST_GAN_results/save_weights/", "gan/MNIST_GAN_results/save_weights/",
-                    "MNIST_GAN_results/save_weights/", "save_weights/"] 
+                     "MNIST_GAN_results/save_weights/", "save_weights/", "src/gan/demo_notebooks/MNIST_GAN_results/save_weights/",
+                     "gan/demo_notebooks/MNIST_GAN_results/save_weights/", "demo_notebooks/MNIST_GAN_results/save_weights/"] 
 
     filePath = None
     for path in terminal_path:
