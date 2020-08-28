@@ -273,7 +273,7 @@ def plot_example_errors(X, y, y_pred):
     # Plot the first 9 images.
     plot_example(X, y, y_pred)
 
-def show_result(EPOCHS, path, show=False, save=False):
+def show_result(G, EPOCHS, path, show=False, save=False):
     fixed_noise = np.random.randn(5*5, 100)
     test_images = G(fixed_noise)
     
