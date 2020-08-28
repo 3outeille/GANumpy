@@ -149,8 +149,8 @@ class Sigmoid():
 
 class BinaryCrossEntropyLoss():
 
-    def __init__(self):
-        pass
+    def __init__(self, epsilon=10e-8):
+        self.epsilon = epsilon
     
     def get(self, y_pred, y):
         """
@@ -160,5 +160,6 @@ class BinaryCrossEntropyLoss():
             - y_pred: model predictions.
             - y: ground truth labels.
         """
-        loss = -(y * np.log(y_pred) + (1-y) * np.log(1-y_pred))
+        samples = len(y_pred)
+        loss = np.sum(-(y * np.log(y_pred+self.epsilon) + (1-y) * np.log(1-y_pred+self.epsilon))) / -samples
         return loss
