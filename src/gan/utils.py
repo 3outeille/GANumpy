@@ -147,7 +147,7 @@ def dataloader(X, y, BATCH_SIZE):
     for t in range(0, n, BATCH_SIZE):
         yield X[t:t+BATCH_SIZE, ...], y[t:t+BATCH_SIZE, ...]
 
-def save_params_to_file(model):
+def save_params_to_file(model, filename):
     """
         Saves model parameters to a file.
 
@@ -155,7 +155,8 @@ def save_params_to_file(model):
         -model: a CNN architecture.
     """
     # Make save_weights/ accessible from every folders.
-    terminal_path = ["src/fast/save_weights/", "fast/save_weights/", '../fast/save_weights/', "save_weights/", "../save_weights/"]
+    terminal_path = ["src/gan/MNIST_GAN_results/save_weights/", "gan/MNIST_GAN_results/save_weights/",
+                     "MNIST_GAN_results/save_weights/", "save_weights/"] 
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -164,39 +165,30 @@ def save_params_to_file(model):
         raise FileNotFoundError("save_params_to_file(): Impossible to find save_weights/ from current folder. You need to manually add the path to it in the \'terminal_path\' list and the run the function again.")
 
     weights = model.get_params()
-    if dirPath == '../fast/save_weights/': # We run the code from demo notebook.
-        with open(dirPath + "demo_weights.pkl","wb") as f:
-            pickle.dump(weights, f)
-    else:
-        with open(dirPath + "final_weights.pkl","wb") as f:
-            pickle.dump(weights, f)
 
-def load_params_from_file(model, isNotebook=False):
+    with open(dirPath + filename,"wb") as f:
+        pickle.dump(weights, f)
+
+def load_params_from_file(mode, filename):
     """
         Loads model parameters from a file.
 
         Parameters:
         -model: a CNN architecture.
     """
-    if isNotebook: # We run from demo-notebooks/
-        pickle_in = open("../fast/save_weights/demo_weights.pkl", 'rb')
-        params = pickle.load(pickle_in)
-        model.set_params(params)
-    else:
-        # Make final_weights.pkl file accessible from every folders.
-        terminal_path = ["src/fast/save_weights/final_weights.pkl", "fast/save_weights/final_weights.pkl",
-        "save_weights/final_weights.pkl", "../save_weights/final_weights.pkl"]
+    terminal_path = ["src/gan/MNIST_GAN_results/save_weights/", "gan/MNIST_GAN_results/save_weights/",
+                    "MNIST_GAN_results/save_weights/", "save_weights/"] 
 
-        filePath = None
-        for path in terminal_path:
-            if os.path.isfile(path):
-                filePath = path
-        if filePath == None:
-            raise FileNotFoundError('load_params_from_file(): Cannot find final_weights.pkl from your current folder. You need to manually add it to terminal_path list and the run the function again.')
+    filePath = None
+    for path in terminal_path:
+        if os.path.isfile(path + filename):
+            filePath = path + filename
+    if filePath == None:
+        raise FileNotFoundError('load_params_from_file(): Cannot find final_weights.pkl from your current folder. You need to manually add it to terminal_path list and the run the function again.')
 
-        pickle_in = open(filePath, 'rb')
-        params = pickle.load(pickle_in)
-        model.set_params(params)
+    pickle_in = open(filePath, 'rb')
+    params = pickle.load(pickle_in)
+    model.set_params(params)
     return model
             
 def prettyPrint3D(M):
@@ -279,8 +271,8 @@ def plot_example_errors(X, y, y_pred):
     plot_example(X, y, y_pred)
 
 def show_result(EPOCHS, path, show=False, save=False):
-    z = np.random.randn((5*5, 100))
-    test_images = G(z)
+    fixed_noise = np.random.randn((5*5, 100))
+    test_images = G(fixed_noise)
     
     size_figure_grid = 5
 
@@ -302,7 +294,7 @@ def show_result(EPOCHS, path, show=False, save=False):
     if show:
         plt.show()
     else:
-        plt.close())
+        plt.close()
 
 def show_train_hist(hist, path, show=False, save=False):
     x = range(len(hist['D_losses']))
