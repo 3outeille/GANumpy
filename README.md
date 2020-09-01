@@ -8,7 +8,7 @@
 # On Linux terminal, using virtualenv.
 virtualenv my_ganumpy_env
 # Activate it.
-source myenv/bin/activate
+source my_ganumpy_env/bin/activate
 ```
 
 - Install **requirements.txt**.
