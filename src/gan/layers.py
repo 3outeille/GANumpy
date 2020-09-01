@@ -8,7 +8,8 @@ class Fc():
 
         # Xavier-Glorot initialization - used for sigmoid, tanh.
         self.W = {'val': np.random.randn(self.row, self.col) * np.sqrt(1./self.col), 'grad': 0}
-        self.b = {'val': np.random.randn(1, self.row) * np.sqrt(1./self.row), 'grad': 0}
+        # self.b = {'val': np.random.randn(1, self.row) * np.sqrt(1./self.row), 'grad': 0}
+        self.b = {'val': np.zeros((1, self.row)), 'grad': 0}
         
         self.cache = None
 
@@ -41,25 +42,27 @@ class Fc():
         fc = self.cache
         m = fc.shape[0]
 
-        #Compute gradient.
-        self.W['grad'] = (1/m) * np.dot(deltaL.T, fc)
-        self.b['grad'] = (1/m) * np.sum(deltaL, axis = 0)
-
+        # Compute gradient.
+        # self.W['grad'] = (1/m) * np.dot(deltaL.T, fc)
+        # self.b['grad'] = (1/m) * np.sum(deltaL, axis = 0)
+        
+        self.W['grad'] = np.dot(deltaL.T, fc)
+        self.b['grad'] = np.sum(deltaL, axis = 0)
+        
         #Compute error.
         new_deltaL = np.dot(deltaL, self.W['val']) 
-        #We still need to multiply new_deltaL by the derivative of the activation
-        #function which is done in TanH.backward().
+
+        #We still need to multiply new_deltaL by the derivative of the activation.
         return new_deltaL, self.W['grad'], self.b['grad']
     
 class SGD():
 
-    def __init__(self, lr, params):
-        self.lr = lr
+    def __init__(self, params):
         self.params = params
 
-    def update_params(self, grads):
+    def update_params(self, grads, lr):
         for key in self.params:
-            self.params[key] = self.params[key] - self.lr * grads['d' + key]
+            self.params[key] = self.params[key] - lr * grads['d' + key]
         return self.params        
 
 class AdamGD():
@@ -92,8 +95,7 @@ class AdamGD():
 
 class TanH():
  
-    def __init__(self, alpha = 1.7159):
-        self.alpha = alpha
+    def __init__(self):
         self.cache = None
 
     def forward(self, X):
@@ -104,7 +106,7 @@ class TanH():
             - X: input tensor.
         """
         self.cache = X
-        return self.alpha * np.tanh(X)
+        return np.tanh(X)
 
     def backward(self, new_deltaL):
         """
@@ -115,7 +117,7 @@ class TanH():
             - new_deltaL: error previously computed.
         """
         X = self.cache
-        return new_deltaL * (1 - np.tanh(X)**2)
+        return new_deltaL * (1. - np.tanh(X)**2)
 
 class LeakyReLU():
 
@@ -140,16 +142,16 @@ class Sigmoid():
 
     def forward(self, X):
         self.cache = X
-        return 1 / (1 + np.exp(-X))
+        return 1. / (1. + np.exp(-X))
 
     def backward(self, new_deltaL):
         X = self.cache
-        sigmoid = 1 / (1 + np.exp(-X))
-        return new_deltaL * (sigmoid * (1 - sigmoid))
+        sigmoid = 1. / (1. + np.exp(-X))
+        return new_deltaL * (sigmoid * (1. - sigmoid))
 
 class BinaryCrossEntropyLoss():
 
-    def __init__(self, epsilon=10e-8):
+    def __init__(self, epsilon=1e-8):
         self.epsilon = epsilon
     
     def get(self, y_pred, y):
@@ -160,6 +162,5 @@ class BinaryCrossEntropyLoss():
             - y_pred: model predictions.
             - y: ground truth labels.
         """
-        samples = len(y_pred)
-        loss = np.sum((y * np.log(y_pred + self.epsilon) + (1. - y) * np.log(1. - y_pred + self.epsilon))) / -samples
+        loss = -np.mean((y * np.log(y_pred + self.epsilon) + (1. - y) * np.log(1. - y_pred + self.epsilon)))
         return loss
