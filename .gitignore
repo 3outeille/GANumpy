@@ -3,3 +3,5 @@ my_gan_env/
 __pycache__/
 .ipynb_checkpoints/
 .vscode/
+src/gan/MNIST_GAN_results
+src/gan_yaae/MNIST_GAN_results
