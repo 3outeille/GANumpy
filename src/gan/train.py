@@ -16,10 +16,9 @@ filename = [
 ]
 
 def train():
-    NB_EPOCH = 10
-    BATCH_SIZE = 100
+    NB_EPOCH = 100
+    BATCH_SIZE = 1
     LR = 0.0002
-    epsilon = 10e-8
 
     # results save folder
     if not os.path.isdir('MNIST_GAN_results'):
@@ -32,43 +31,41 @@ def train():
     criterion = BinaryCrossEntropyLoss()
 
     def real_loss(D_out, smooth=False):
-        batch_size = D_out.shape[0]
         if smooth:
-            labels = np.ones(batch_size) * 0.9
+            labels = np.ones(BATCH_SIZE) * 0.9
         else:
-            labels = np.ones(batch_size) # real labels = 1.
-
+            labels = np.ones(BATCH_SIZE) # real labels = 1.
+        
         loss = criterion.get(D_out.squeeze(), labels)
-        deltaL = -1./(D_out + epsilon)
-        return loss, deltaL
+        return loss
 
     def fake_loss(D_out):
-        batch_size = D_out.shape[0]
-        labels = np.zeros(batch_size) # fake labels = 0.    
+        labels = np.zeros(BATCH_SIZE) # fake labels = 0.    
         loss = criterion.get(D_out.squeeze(), labels)
-        deltaL = -1./(D_out + epsilon)
-        return loss, deltaL
+        return loss
 
     print("\n----------------EXTRACTION---------------\n")
     X, y, X_test, y_test = load(filename)
-    X = X[:100, ...]
+    X = X[:BATCH_SIZE, ...]
 
+   
     print("\n--------------PREPROCESSING--------------\n")
-    X = (X - 0.5) / 0.5
+    X = (X - 127.5) / 127.5
     print("Normalize dataset: OK")
     
-    G = Generator()
-    D = Discriminator()
+    # print(X[0, 0, :])
+    # for i in range(5):
+    #     plt.imshow(X[i, 0, :])
+    #     plt.show()
+    # return 
 
-    G_optimizer = AdamGD(lr = LR, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, params = G.get_params())
-    D_optimizer = AdamGD(lr = LR, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, params = D.get_params())
+    D = Discriminator()
+    G = Generator()
+
+    D_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = D.get_params())
+    G_optimizer = AdamGD(lr = LR, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-8, params = G.get_params())
     
     print("----------------TRAINING-----------------\n")
-
-    print("EPOCHS: {}".format(NB_EPOCH))
-    print("BATCH_SIZE: {}".format(BATCH_SIZE))
-    print("LR: {}".format(LR))
-    print()
 
     nb_examples = len(X)
     
@@ -92,8 +89,8 @@ def train():
             real_images = real_images.reshape((BATCH_SIZE, -1))
             # Compute the discriminator losses on real images
             # smooth the real labels.
-            D_real = D.forward(real_images)
-            D_real_loss, real_deltaL = real_loss(D_real, smooth=True)
+            D_real, D_cache = D.forward(real_images)
+            D_real_loss = real_loss(D_real, smooth=True)
 
             # 2. Train with fake images.
             # Generate fake images.
@@ -101,14 +98,14 @@ def train():
             fake_images = G.forward(z)
 
             # 3. Compute the discriminator losses on fake images.
-            D_fake = D.forward(fake_images)
-            D_fake_loss, fake_deltaL = fake_loss(D_fake)
+            D_fake, _ = D.forward(fake_images)
+            D_fake_loss = fake_loss(D_fake)
 
             # 4. Add up real and fake loss.
             D_loss = D_real_loss + D_fake_loss
 
             # 5. Perform backprop and optimization step.
-            grads = D.backward(real_deltaL, fake_deltaL)
+            grads = D.backward(D_real, D_fake)
             params = D_optimizer.update_params(grads)
             D.set_params(params)
 
@@ -116,17 +113,15 @@ def train():
 
             # ---------TRAIN THE GENERATOR ----------------
 
-            # 1. Generate fake images.
-            z = np.random.randn(BATCH_SIZE, 100)
-            fake_images = G.forward(z)
-    
-            # 2. Compute the discriminator loss on fake images
+            # 1. Compute the discriminator loss on fake images
             # using flipped labels.
-            D_fake = D.forward(fake_images)
-            G_loss, deltaL = real_loss(D_fake) # use real loss to flip labels.
+            # z = np.random.randn(BATCH_SIZE, 100)
+            # fake_images = G.forward(z)
+            # D_fake, D_cache = D.forward(fake_images)
+            G_loss = real_loss(D_fake) # use real loss to flip labels.
           
-            # 3. Perform backprop and optimization step.        
-            grads = G.backward(deltaL)
+            # 2. Perform backprop and optimization step.        
+            grads = G.backward(D_fake, D_cache)
             params = G_optimizer.update_params(grads)
             G.set_params(params)
 
@@ -135,8 +130,8 @@ def train():
         end = timer()
 
         # Print discriminator and generator loss.
-        info = "[Epoch {}/{}] ({:0.3f}s): D_loss = {:0.6f} | G_loss = {:0.6f}"
-        print(info.format(epoch+1, NB_EPOCH, end-start, np.mean(D_losses), np.mean(G_losses)))
+        info = "[Epoch {}/{}] ({:0.3f}s): D_loss = {:0.6f} | G_loss = {:0.6f} | lr = {}"
+        print(info.format(epoch+1, NB_EPOCH, end-start, np.mean(D_losses), np.mean(G_losses), LR))
 
         # Visualize generator learning.
         path = 'MNIST_GAN_results/training_results/MNIST_GAN_' + str(epoch + 1) + '.png'
@@ -145,11 +140,10 @@ def train():
         train_hist['D_losses'].append(np.mean(D_losses))
         train_hist['G_losses'].append(np.mean(G_losses))
 
-
     pbar.close()
     print("Training finish!... save training results")
-    save_params_to_file(G, "generator_param.pkl")
     save_params_to_file(D, "discriminator_param.pkl")
+    save_params_to_file(G, "generator_param.pkl")
 
     with open('MNIST_GAN_results/train_hist.pkl', 'wb') as f:
         pickle.dump(train_hist, f)
