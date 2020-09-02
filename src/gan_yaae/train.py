@@ -16,8 +16,8 @@ filename = [
 ]
 
 def train():
-    NB_EPOCH = 100
-    BATCH_SIZE = 2
+    NB_EPOCH = 300
+    BATCH_SIZE = 1
     LR = 0.0002
 
     # results save folder
@@ -69,8 +69,8 @@ def train():
     # G = Generator(nin=100, nouts=[128,28*28])
     # D = Discriminator(nin=28*28, nouts=[128,1])
 
-    G_optimizer = SGD(params=G.parameters(), lr=LR)
-    D_optimizer = SGD(params=D.parameters(), lr=LR)
+    G_optimizer = Adam(params=G.parameters(), lr=LR, beta1=0.5)
+    D_optimizer = Adam(params=D.parameters(), lr=LR, beta2=0.5)
     
     print("----------------TRAINING-----------------\n")
     

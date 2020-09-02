@@ -25,15 +25,15 @@ class Adam:
         self.beta2 = beta2
         self.epsilon = epsilon
         
-        self.momentum = {}
-        self.rmsprop = {}
+        self.m = {}
+        self.v = {}
 
         for i, (W, b) in enumerate(self.params.values()):
-            self.momentum['vdW' + str(i)] = np.zeros(W.data.shape)
-            self.momentum['vdb' + str(i)] = np.zeros(b.data.shape)
+            self.m['W' + str(i)] = np.zeros(W.data.shape)
+            self.m['b' + str(i)] = np.zeros(b.data.shape)
 
-            self.rmsprop['sdW' + str(i)] = np.zeros(W.data.shape)
-            self.rmsprop['sdb' + str(i)] = np.zeros(b.data.shape)
+            self.v['W' + str(i)] = np.zeros(W.data.shape)
+            self.v['b' + str(i)] = np.zeros(b.data.shape)
 
     def zero_grad(self):
         for W, b in self.params.values():
@@ -42,16 +42,22 @@ class Adam:
 
     def step(self):
         for i, (W, b) in enumerate(self.params.values()):
-            # Momentum update.
-            self.momentum['vdW' + str(i)] = (self.beta1 * self.momentum['vdW' + str(i)]) + (1 - self.beta1) * W.grad.data
-            self.momentum['vdb' + str(i)] = (self.beta1 * self.momentum['vdb' + str(i)]) + (1 - self.beta1) * b.grad.data
-            # RMSprop update.
-            self.rmsprop['sdW' + str(i)] =  (self.beta2 * self.rmsprop['sdW' + str(i)]) + (1 - self.beta2) * (W.grad.data**2)
-            self.rmsprop['sdb' + str(i)] =  (self.beta2 * self.rmsprop['sdb' + str(i)]) + (1 - self.beta2) * (b.grad.data**2)
+
+            self.m['W' + str(i)] = (self.beta1 * self.m['W' + str(i)]) + (1 - self.beta1) * W.grad.data
+            self.m['b' + str(i)] = (self.beta1 * self.m['b' + str(i)]) + (1 - self.beta1) * b.grad.data
+
+            self.v['W' + str(i)] =  (self.beta2 * self.v['W' + str(i)]) + (1 - self.beta2) * (W.grad.data**2)
+            self.v['b' + str(i)] =  (self.beta2 * self.v['b' + str(i)]) + (1 - self.beta2) * (b.grad.data**2)
+
+            mW_hat = self.m['W' + str(i)] / (1 - self.beta1)
+            mb_hat = self.m['b' + str(i)] / (1 - self.beta1)
+            
+            vW_hat = self.v['W' + str(i)] / (1 - self.beta2)
+            vb_hat = self.v['b' + str(i)] / (1 - self.beta2)
 
             # Update parameters.
-            W.data = W.data - (self.lr * self.momentum['vdW' + str(i)]) / (np.sqrt(self.rmsprop['sdW' + str(i)]) + self.epsilon)
-            b.data = b.data - (self.lr * self.momentum['vdb' + str(i)]) / (np.sqrt(self.rmsprop['sdb' + str(i)]) + self.epsilon)
+            W.data = W.data - (self.lr * mW_hat) / (np.sqrt(vW_hat) + self.epsilon)
+            b.data = b.data - (self.lr * mb_hat) / (np.sqrt(vb_hat) + self.epsilon)
 
 class Linear():
     
@@ -61,8 +67,10 @@ class Linear():
         self.col = column
         self.isLastLayer = isLastLayer
 
-        self.W = Node(np.random.randn(row, column) * np.sqrt(1./row), requires_grad=True)
-        self.b = Node(np.zeros(column), requires_grad=True)
+        scaleW = np.sqrt(2. / (row + column))
+        scaleb = np.sqrt(2. / (1 + column))
+        self.W = Node(np.random.uniform(-scaleW, scaleW, (row, column)), requires_grad=True)
+        self.b = Node(np.random.uniform(-scaleb, scaleb, (1, column), requires_grad=True)
 
     def __call__(self, X, model=None):
         act = X.matmul(self.W) + self.b
