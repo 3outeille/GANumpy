@@ -7,10 +7,16 @@ class Fc():
         self.col = column
 
         # Xavier-Glorot initialization - used for sigmoid, tanh.
-        self.W = {'val': np.random.randn(self.row, self.col) * np.sqrt(1./self.col), 'grad': 0}
+        # self.W = {'val': np.random.randn(self.row, self.col) * np.sqrt(1./self.col), 'grad': 0}
         # self.b = {'val': np.random.randn(1, self.row) * np.sqrt(1./self.row), 'grad': 0}
-        self.b = {'val': np.zeros((1, self.row)), 'grad': 0}
+        # self.b = {'val': np.zeros((1, self.row)), 'grad': 0}
         
+        # He Normal initialization.
+        scaleW = np.sqrt(2./(row + column))
+        scaleb = np.sqrt(2./(1 + row)) 
+        self.W = {'val': np.random.uniform(-scaleW, scaleW, (row, column)), 'grad': 0}
+        self.b = {'val': np.random.uniform(-scaleb, scaleb, (1, row)), 'grad': 0}
+
         self.cache = None
 
     def forward(self, fc):
@@ -66,30 +72,31 @@ class SGD():
         return self.params        
 
 class AdamGD():
-
-    def __init__(self, lr, beta1, beta2, epsilon, params):
+    def __init__(self, params, lr, beta1=0.9, beta2=0.999, epsilon=1e-08):
+        self.params = params
         self.lr = lr
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
-        self.params = params
         
-        self.momentum = {}
-        self.rmsprop = {}
+        self.m = {}
+        self.v = {}
 
         for key in self.params:
-            self.momentum['vd' + key] = np.zeros(self.params[key].shape)
-            self.rmsprop['sd' + key] = np.zeros(self.params[key].shape)
+            self.m['m' + key] = np.zeros(self.params[key].shape)
+            self.v['v' + key] = np.zeros(self.params[key].shape)
 
     def update_params(self, grads):
-        
+
         for key in self.params:
-            # Momentum update.
-            self.momentum['vd' + key] = (self.beta1 * self.momentum['vd' + key]) + (1 - self.beta1) * grads['d' + key] 
-            # RMSprop update.
-            self.rmsprop['sd' + key] =  (self.beta2 * self.rmsprop['sd' + key]) + (1 - self.beta2) * (grads['d' + key]**2)
+            self.m['m' + key] = (self.beta1 * self.m['m' + key]) + (1 - self.beta1) * grads['d' + key] 
+            self.v['v' + key] =  (self.beta2 * self.v['v' + key]) + (1 - self.beta2) * (grads['d' + key] **2)
+
             # Update parameters.
-            self.params[key] = self.params[key] - (self.lr * self.momentum['vd' + key]) / (np.sqrt(self.rmsprop['sd' + key]) + self.epsilon)  
+            m_hat = self.m['m' + key] / (1 - self.beta1)
+            v_hat = self.v['v' + key] / (1 - self.beta2)
+
+            self.params[key] = self.params[key] - (self.lr * m_hat / (np.sqrt(v_hat) + self.epsilon))
 
         return self.params
 
