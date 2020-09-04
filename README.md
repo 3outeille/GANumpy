@@ -1,5 +1,15 @@
 # GANumpy 
 
+<img src="./img/logo.ong" hspace="20%" width="60%">
+
+## Introduction
+
+- **GANumpy** is a Generative Adversarial Network written in pure Numpy (educational purpose only).
+- It uses [Yaae][yaae], my custom **automatic differentiation engine** also written in pure Numpy.
+- The GAN was trained on MNIST dataset. To speed up the training time, only a subset of digit samples (1,2,3) were taken. Here are the results:
+
+<img src="./img/generation_animation.gif" hspace="20%" width="50%">
+
 ## Installation
 
 - Create a virtual environment in the root folder using [virtualenv][virtualenv] and activate it.
@@ -22,4 +32,5 @@ python3 setup.py clean
 <!---
 Variables with links.
 -->
+[yaae]: https://github.com/3outeille/Yaae
 [virtualenv]: https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
