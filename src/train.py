@@ -1,12 +1,12 @@
-from src.engine import Node
-from src.gan import Generator, Discriminator, Adam
-from src.gan_utils import *
-import numpy as np
-import matplotlib.pyplot as plt
-from tqdm import trange
-from timeit import default_timer as timer
 import os
 import pickle
+import numpy as np
+from tqdm import trange
+import matplotlib.pyplot as plt
+from timeit import default_timer as timer
+from src.engine import Node
+from src.utils import *
+from src.gan import Generator, Discriminator, Adam
 
 filename = [
         ["training_images","train-images-idx3-ubyte.gz"],
@@ -16,7 +16,7 @@ filename = [
 ]
 
 def train():
-    NB_EPOCH = 150
+    NB_EPOCH = 200
     BATCH_SIZE = 100
     LR = 0.0002
 
@@ -25,8 +25,6 @@ def train():
         os.mkdir('MNIST_GAN_results')
     if not os.path.isdir('MNIST_GAN_results/training_results'):
         os.mkdir('MNIST_GAN_results/training_results')
-    if not os.path.isdir('MNIST_GAN_results/save_weights'):
-        os.mkdir('MNIST_GAN_results/save_weights')
 
     def binary_cross_entropy_loss(y_pred, labels):
         samples = y_pred.shape[0]
@@ -57,7 +55,6 @@ def train():
 
     print("\n----------------EXTRACTION---------------\n")
     X = load(filename, numbers=[1,2,3])
-    # X = X[:1000, ...]
 
     print("\n--------------PREPROCESSING--------------\n")
     X = (X - 127.5) / 127.5
@@ -82,7 +79,6 @@ def train():
     train_hist['D_losses'] = []
     train_hist['G_losses'] = []
 
-
     for epoch in range(NB_EPOCH):
         
         pbar = trange(nb_examples // BATCH_SIZE)
@@ -92,7 +88,6 @@ def train():
         start = timer()
 
         for i, real_images in zip(pbar, train_loader):
-
             # ---------TRAIN THE DISCRIMINATOR ----------------
             
             # # 1. Train with real images.
@@ -112,7 +107,7 @@ def train():
             D_fake = D(fake_images)
             D_fake_loss = fake_loss(D_fake)
 
-            # 4/ Perform backprop and optimization step.
+            # 4. Perform backprop and optimization step.
             D_optimizer.zero_grad()
             D_real_loss.backward()
             D_optimizer.step()
@@ -142,6 +137,7 @@ def train():
             G_losses.append(G_loss.data)
 
         end = timer()
+
         # Print discriminator and generator loss.
         info = "[Epoch {}/{}] ({:0.3f}s): D_loss = {:0.6f} | G_loss = {:0.6f}"
         print(info.format(epoch+1, NB_EPOCH, end-start, np.mean(D_losses), np.mean(G_losses)))

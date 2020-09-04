@@ -1,6 +1,6 @@
-from src.engine import Node
-import numpy as np
 import torch
+import numpy as np
+from src.engine import Node
 
 class Adam:
     def __init__(self, params, lr, beta1=0.9, beta2=0.999, epsilon=1e-08):
