@@ -146,6 +146,12 @@ class Node:
         out._compute_derivatives = op.compute_derivatives
         return out
 
+    def dropout(self, p=0.2): 
+            op = Dropout(self, p)
+            out = op.forward_pass()
+            out._compute_derivatives = op.compute_derivatives
+            return out
+
 # ----------------------------------------------------------------------------
 # Operators & Functions.
 
@@ -323,6 +329,20 @@ class Sigmoid():
     def compute_derivatives(self):
         f = 1. / (1. + np.exp(-self.node1.data))
         self.node1.grad.data += self.out.grad.data * f * (1 - f)
+
+class Dropout():
+
+    def __init__(self, node1, p):
+        self.node1 = node1 if isinstance(node1, Node) else Node(node1)
+        self.p = p
+        self.mask = np.random.uniform(size=node1.shape) > self.p
+
+    def forward_pass(self):
+        self.out = Node(self.node1.data * self.mask, children=[self.node1])
+        return self.out
+
+    def compute_derivatives(self):
+        self.node1.grad.data += self.out.grad.data * self.mask
 
 # ----------------------------------------------------------------------------
 # Utility functions.

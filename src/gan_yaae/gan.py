@@ -1,21 +1,6 @@
 from src.gan_yaae.engine import Node
 import numpy as np
-
-class SGD:
-    
-    def __init__(self, params, lr):
-        self.params = params
-        self.lr = lr
-
-    def zero_grad(self):
-        for W, b in self.params.values():
-            W.zero_grad()
-            b.zero_grad()
-
-    def step(self):
-        for W, b in self.params.values():       
-            W.data -= self.lr * W.grad.data
-            b.data -= self.lr * b.grad.data
+import torch
 
 class Adam:
     def __init__(self, params, lr, beta1=0.9, beta2=0.999, epsilon=1e-08):
@@ -31,7 +16,6 @@ class Adam:
         for i, (W, b) in enumerate(self.params.values()):
             self.m['W' + str(i)] = np.zeros(W.data.shape)
             self.m['b' + str(i)] = np.zeros(b.data.shape)
-
             self.v['W' + str(i)] = np.zeros(W.data.shape)
             self.v['b' + str(i)] = np.zeros(b.data.shape)
 
@@ -67,19 +51,22 @@ class Linear():
         self.col = column
         self.isLastLayer = isLastLayer
 
+        #He Normal initialization.
         scaleW = np.sqrt(2. / (row + column))
         scaleb = np.sqrt(2. / (1 + column))
         self.W = Node(np.random.uniform(-scaleW, scaleW, (row, column)), requires_grad=True)
-        self.b = Node(np.random.uniform(-scaleb, scaleb, (1, column), requires_grad=True)
-
+        self.b = Node(np.random.uniform(-scaleb, scaleb, (1, column)), requires_grad=True)
+       
     def __call__(self, X, model=None):
         act = X.matmul(self.W) + self.b
-   
+
         if not self.isLastLayer:
-            return act.lrelu()
+            act = act.lrelu(0.2)
+            act = act.dropout(0.3)
+            return act
         elif model == "D":
             return act.sigmoid()
-        else:
+        elif model == "G":
             return act.tanh()
 
     def __repr__(self):
@@ -128,7 +115,7 @@ class Discriminator:
             s += "   " + str(layer)
         s += ")"
         return s
-
+        
     def parameters(self):
         params = {}
         for i, layer in enumerate(self.layers):

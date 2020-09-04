@@ -26,7 +26,7 @@ def download_mnist(filename):
                     ]
     """
     # Make data/ accessible from every folders.
-    terminal_path = ['src/yaae/data/', 'yaae/data/', '../yaae/data/', 'data/', '../data']
+    terminal_path = ['src/gan_yaae/data/', 'gan_yaae/data/', '../gan_yaae/data/', 'data/', '../data']
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -53,7 +53,7 @@ def extract_mnist(filename):
                     ]
     """
     # Make data/ accessible from every folders.
-    terminal_path = ['src/yaae/data/', 'yaae/data/', '../yaae/data/', 'data/', '../data']
+    terminal_path = ['src/gan_yaae/data/', 'gan_yaae/data/', '../gan_yaae/data/', 'data/', '../data']
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -78,7 +78,7 @@ def extract_mnist(filename):
 
     return mnist
 
-def load(filename):
+def load(filename, numbers=[]):
     """
         Loads dataset to variables.
 
@@ -91,7 +91,7 @@ def load(filename):
                   ]
     """
     # Make data/ accessible from every folders.
-    terminal_path = ['src/yaae/data/', 'yaae/data/', '../yaae/data/', 'data/', '../data']
+    terminal_path = ['src/gan_yaae/data/', 'gan_yaae/data/', '../gan_yaae/data/', 'data/', '../data']
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -115,7 +115,15 @@ def load(filename):
         mnist = extract_mnist(filename)
 
     print('Loading dataset: OK')
-    return mnist["training_images"], mnist["training_labels"], mnist["test_images"], mnist["test_labels"]
+    
+    if numbers != []:
+        newtrainX = []
+        for idx in range(0,len(mnist["training_images"])):
+            if mnist["training_labels"][idx] in numbers:
+                newtrainX.append(mnist["training_images"][idx, :])
+        return np.array(newtrainX)
+    else:
+        return mnist["training_images"]
 
 def dataloader(X, BATCH_SIZE):
     """
@@ -133,8 +141,7 @@ def show_result(G, epoch, path, show=False, save=False):
     fixed_noise = np.random.randn(5*5, 100)
     fixed_noise = Node(fixed_noise, requires_grad=False)
     test_images = G(fixed_noise)
-    test_images = test_images.data
-    
+
     size_figure_grid = 5
 
     fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(5, 5))
@@ -146,7 +153,7 @@ def show_result(G, epoch, path, show=False, save=False):
         i = k // 5
         j = k % 5
         ax[i, j].cla()
-        ax[i, j].imshow(test_images[k, :].reshape((28, 28)), cmap='gray')
+        ax[i, j].imshow(test_images.data[k, :].reshape((28, 28)), cmap='gray')
 
     label = 'Epoch {0}'.format(epoch)
     fig.text(0.5, 0.04, label, ha='center')
