@@ -1,6 +1,6 @@
 # GANumpy 
 
-<img src="./img/logo.ong" hspace="20%" width="60%">
+<img src="./img/logo.png" hspace="20%" width="40%">
 
 ## Introduction
 
