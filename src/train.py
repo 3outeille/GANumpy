@@ -1,6 +1,6 @@
-from src.gan_yaae.engine import Node
-from src.gan_yaae.gan import Generator, Discriminator, Adam
-from src.gan_yaae.gan_utils import *
+from src.engine import Node
+from src.gan import Generator, Discriminator, Adam
+from src.gan_utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange

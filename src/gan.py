@@ -1,4 +1,4 @@
-from src.gan_yaae.engine import Node
+from src.engine import Node
 import numpy as np
 import torch
 

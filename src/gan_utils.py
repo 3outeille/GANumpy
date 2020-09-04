@@ -10,8 +10,8 @@ from PIL import Image
 from skimage import transform
 import matplotlib.pyplot as plt
 import concurrent.futures as cf
-from src.gan_yaae.data import *
-from src.gan_yaae.engine import Node
+from src.data import *
+from src.engine import Node
 
 def download_mnist(filename):
     """
@@ -26,7 +26,7 @@ def download_mnist(filename):
                     ]
     """
     # Make data/ accessible from every folders.
-    terminal_path = ['src/gan_yaae/data/', 'gan_yaae/data/', '../gan_yaae/data/', 'data/', '../data']
+    terminal_path = ['src/data/', 'data/']
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -53,7 +53,7 @@ def extract_mnist(filename):
                     ]
     """
     # Make data/ accessible from every folders.
-    terminal_path = ['src/gan_yaae/data/', 'gan_yaae/data/', '../gan_yaae/data/', 'data/', '../data']
+    terminal_path = ['src/data/', 'data/']
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
@@ -91,7 +91,7 @@ def load(filename, numbers=[]):
                   ]
     """
     # Make data/ accessible from every folders.
-    terminal_path = ['src/gan_yaae/data/', 'gan_yaae/data/', '../gan_yaae/data/', 'data/', '../data']
+    terminal_path = ['src/data/', 'data/']
     dirPath = None
     for path in terminal_path:
         if os.path.isdir(path):
