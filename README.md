@@ -6,7 +6,7 @@
 - It uses [Yaae][yaae], my custom **automatic differentiation engine** also written in pure Numpy.
 - The GAN was trained on MNIST dataset. To speed up the training time, only a subset of digit samples (1,2,3) were taken. Here are the results:
 
-<img src="./img/generation_animation.gif" hspace="20%" width="50%">
+<img src="./src/MNIST_GAN_results/generation_animation.gif" hspace="25%" width="50%">
 
 ## Installation
 
